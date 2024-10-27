@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:hiichat/firebase/firebaseapis.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../firebase/authentication.dart';
 import '../nestedScreen/login/services/logout_function.dart';
@@ -13,14 +17,44 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  XFile? image;
+  UploadTask? uploadTask;
   Map<String, dynamic>? userInfo;
   bool isLoading = true; // To handle the loading state
   final FirebaseFirestore _firestore = AllAPIs.firestore;
-
+  bool imageLoading = false;
   @override
   void initState() {
     super.initState();
     displayUserInfo(); // Fetch user data when the screen initializes
+  }
+
+  Future<void> onProfileTapped() async {
+    final img = await ImagePicker().pickImage(source: ImageSource.gallery);
+
+    if (img != null) {
+      image = img;
+      setState(() {imageLoading = true;});
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child("images/${AllAPIs.auth.currentUser?.uid}");
+      uploadTask = ref.putFile(File(image!.path));
+      final snapshot = await uploadTask!.whenComplete(() => null);
+
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      await _firestore.collection("user").doc(AllAPIs.auth.currentUser?.uid).update({
+        'profilePic': downloadUrl,
+      });
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile Uploaded')),
+        );
+      }
+      setState(() {
+        uploadTask = null;
+        imageLoading = false;
+      });
+    }
   }
 
   // Function to load user data from Firestore
@@ -42,7 +76,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               'Name': userData['name'],
               'UserName': userData['username'],
               'Email': userData['email'],
-              'Profile': userData['profile'],
+              'Profile': userData['profilePic'],
               'Uid': userData['uid']
             };
             isLoading = false;
@@ -79,6 +113,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,10 +125,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: CircularProgressIndicator()) // Show loading spinner
             : userInfo == null
                 ? const Center(
-                    child:
-                        Text('No user data found')) // Fallback for null userInfo
+                    child: Text(
+                        'No user data found')) // Fallback for null userInfo
                 : SingleChildScrollView(
-                  child: Column(
+                    child: Column(
                       children: [
                         Container(
                           margin: const EdgeInsets.all(10),
@@ -104,12 +142,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           child: Column(
                             children: [
-                              CircleAvatar(
-                                backgroundImage: NetworkImage(
-                                  userInfo?['Profile'] ??
-                                      'https://i.postimg.cc/nLhKkwhH/default-avatar.jpg', // Fallback image
+                              GestureDetector(
+                                onTap: () async {
+                                  bool? confirm = await showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          titlePadding: const EdgeInsets.all(0),
+                                          actionsPadding:
+                                              const EdgeInsets.all(0),
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10)),
+                                          actions: [
+                                            SizedBox(
+                                              height: 60,
+                                              child: TextButton(
+                                                style: ButtonStyle(
+                                                    shape: WidgetStatePropertyAll(
+                                                        RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        10)))),
+                                                onPressed: () =>
+                                                    Navigator.of(context)
+                                                        .pop(true),
+                                                child: const Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceEvenly,
+                                                  children: [
+                                                    Icon(Icons.image_rounded),
+                                                    Text("Upload Profile Pic"),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      });
+                                  if (confirm == true) onProfileTapped();
+                                },
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundImage: image == null
+                                          ? NetworkImage(
+                                        userInfo?['Profile'] ?? 'https://i.postimg.cc/nLhKkwhH/default-avatar.jpg',
+                                      )
+                                          : FileImage(File(image!.path)),
+                                      radius: 50,
+                                    ),
+                                    Visibility(
+                                      visible:imageLoading,
+                                      child: StreamBuilder(
+                                        stream: uploadTask?.snapshotEvents,
+                                        builder: (context, snapshot) {
+                                          if (snapshot.hasData) {
+                                            final data = snapshot.data!;
+                                            double progress = data.bytesTransferred / data.totalBytes;
+                                            return Stack(
+                                              alignment: Alignment.center,
+                                              children: [
+                                                // SizedBox to control the size of the CircleAvatar
+                                                SizedBox(
+                                                  width: 110,  // Twice the radius (50 * 2) to ensure it takes the full circle
+                                                  height: 110, // Same here
+                                                  child: CircularProgressIndicator(
+                                                    value: progress, // Progress value (0.0 to 1.0)
+                                                    color: Colors.blue,
+                                                    backgroundColor: Colors.grey,
+                                                    strokeWidth: 5, // Adjust thickness as needed
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          } else {
+                                            return const SizedBox.shrink(); // No progress to display
+                                          }
+                                        },
+                                      ),)
+                                  ],
                                 ),
-                                radius: 50,
                               ),
                               const SizedBox(height: 10),
                               Text(
@@ -119,7 +235,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(height: 5),
                               Text(
-                                userInfo?['UserName'] ?? "No Username Available",
+                                userInfo?['UserName'] ??
+                                    "No Username Available",
                                 // Display Username or fallback
                                 style: const TextStyle(
                                     fontSize: 16, color: Colors.grey),
@@ -152,7 +269,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                userInfo?['About'] ?? 'No information available',
+                                userInfo?['About'] ??
+                                    'No information available',
                                 // Display About or fallback
                                 style: const TextStyle(
                                     fontSize: 12, color: Colors.black),
@@ -189,8 +307,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         ),
+
                       ],
                     ),
-                ));
+                  ));
   }
 }
