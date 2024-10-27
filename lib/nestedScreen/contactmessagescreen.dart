@@ -106,7 +106,7 @@ class _MessageScreenState extends State<MessageScreen> {
             CircleAvatar(
               backgroundImage: NetworkImage(
                 widget.userMap['profilePic'] ??
-                    'https://pbs.twimg.com/profile_images/1419974913260232732/Cy_CUavB.jpg', // Fallback image
+                    'https://st4.depositphotos.com/14903220/22197/v/600/depositphotos_221970610-stock-illustration-abstract-sign-avatar-icon-profile.jpg', // Fallback image
               ),
             ),
             Expanded(

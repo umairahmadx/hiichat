@@ -70,14 +70,22 @@ class _ChatListScreen extends State<ChatListScreen> {
     try {
       QuerySnapshot userSnapshot = await _firestore.collection('user').get();
       userList = userSnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>; // Cast to Map<String, dynamic>
+
         return {
-          'uid': doc['uid'],
-          'name': doc['name'],
-          'email': doc['email'],
-          'username': doc['username'],
+          'uid': (data.containsKey('uid') && data['uid'] != null) ? data['uid'] : 'N/A', // Default value if uid is missing or null
+          'name': (data.containsKey('name') && data['name'] != null) ? data['name'] : 'HiiChat User', // Default value if name is missing or null
+          'email': (data.containsKey('email') && data['email'] != null) ? data['email'] : 'HiiChatUser', // Default value if email is missing or null
+          'username': (data.containsKey('username') && data['username'] != null) ? data['username'] : 'Hii Chat User', // Default value if username is missing or null
+          'profilePic': (data.containsKey('profilePic') && data['profilePic'] != null)
+              ? data['profilePic']
+              : 'https://st4.depositphotos.com/14903220/22197/v/600/depositphotos_221970610-stock-illustration-abstract-sign-avatar-icon-profile.jpg', // Default URL if profilePic is missing or null
         };
       }).toList();
+
+
     } catch (e) {
+      print(e);
       _showErrorSnackbar("Error occurred while fetching users: $e");
     }
   }

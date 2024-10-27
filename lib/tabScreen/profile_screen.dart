@@ -33,8 +33,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final img = await ImagePicker().pickImage(source: ImageSource.gallery);
 
     if (img != null) {
-      image = img;
       setState(() {imageLoading = true;});
+      image = img;
       final ref = FirebaseStorage.instance
           .ref()
           .child("images/${AllAPIs.auth.currentUser?.uid}");
@@ -195,35 +195,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           : FileImage(File(image!.path)),
                                       radius: 50,
                                     ),
-                                    Visibility(
-                                      visible:imageLoading,
-                                      child: StreamBuilder(
-                                        stream: uploadTask?.snapshotEvents,
-                                        builder: (context, snapshot) {
-                                          if (snapshot.hasData) {
-                                            final data = snapshot.data!;
-                                            double progress = data.bytesTransferred / data.totalBytes;
-                                            return Stack(
-                                              alignment: Alignment.center,
-                                              children: [
-                                                // SizedBox to control the size of the CircleAvatar
-                                                SizedBox(
-                                                  width: 110,  // Twice the radius (50 * 2) to ensure it takes the full circle
-                                                  height: 110, // Same here
-                                                  child: CircularProgressIndicator(
-                                                    value: progress, // Progress value (0.0 to 1.0)
-                                                    color: Colors.blue,
-                                                    backgroundColor: Colors.grey,
-                                                    strokeWidth: 5, // Adjust thickness as needed
-                                                  ),
+                                    StreamBuilder(
+                                      stream: uploadTask?.snapshotEvents,
+                                      builder: (context, snapshot) {
+                                        if (snapshot.hasData) {
+                                          final data = snapshot.data!;
+                                          double progress = data.bytesTransferred / data.totalBytes;
+                                          return Stack(
+                                            alignment: Alignment.center,
+                                            children: [
+                                              // SizedBox to control the size of the CircleAvatar
+                                              SizedBox(
+                                                width: 110,  // Twice the radius (50 * 2) to ensure it takes the full circle
+                                                height: 110, // Same here
+                                                child: CircularProgressIndicator(
+                                                  value: progress, // Progress value (0.0 to 1.0)
+                                                  color: imageLoading?Colors.blue:Colors.transparent,
+                                                  backgroundColor: imageLoading?Colors.grey:Colors.transparent,
+                                                  strokeWidth: 5, // Adjust thickness as needed
                                                 ),
-                                              ],
-                                            );
-                                          } else {
-                                            return const SizedBox.shrink(); // No progress to display
-                                          }
-                                        },
-                                      ),)
+                                              ),
+                                            ],
+                                          );
+                                        } else {
+                                          return const SizedBox(
+                                            width: 110,  // Twice the radius (50 * 2) to ensure it takes the full circle
+                                            height: 110, // Same here
+                                            child: CircularProgressIndicator( // Progress value (0.0 to 1.0)
+                                              color: Colors.transparent,
+                                              backgroundColor: Colors.transparent,
+                                              strokeWidth: 5, // Adjust thickness as needed
+                                            ),
+                                          ); // No progress to display
+                                        }
+                                      },
+                                    )
                                   ],
                                 ),
                               ),
