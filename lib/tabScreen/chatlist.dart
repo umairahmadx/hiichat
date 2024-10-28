@@ -85,7 +85,6 @@ class _ChatListScreen extends State<ChatListScreen> {
 
 
     } catch (e) {
-      print(e);
       _showErrorSnackbar("Error occurred while fetching users: $e");
     }
   }

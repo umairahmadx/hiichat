@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hiichat/firebase/authentication.dart';
+import 'package:hiichat/nestedScreen/login/services/forgot_password.dart';
 import 'package:hiichat/nestedScreen/login/signup.dart';
 
 import '../../home.dart';
+
 class Login extends StatefulWidget {
   const Login({super.key});
 
@@ -80,7 +82,6 @@ class _LoginState extends State<Login> {
       }
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,9 +91,7 @@ class _LoginState extends State<Login> {
         },
         child: SingleChildScrollView(
           child: SizedBox(
-            height: MediaQuery.of(context)
-                .size
-                .height,
+            height: MediaQuery.of(context).size.height,
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -109,6 +108,7 @@ class _LoginState extends State<Login> {
                   const SizedBox(height: 40),
                   // Email TextField
                   SizedBox(
+                    height: 50,
                     child: TextFormField(
                       onChanged: (newValue) => _email = newValue,
                       decoration: InputDecoration(
@@ -129,6 +129,7 @@ class _LoginState extends State<Login> {
                   const SizedBox(height: 16),
                   // Password TextField
                   SizedBox(
+                    height: 50,
                     child: TextFormField(
                       onChanged: (newValue) => _password = newValue,
                       decoration: InputDecoration(
@@ -145,7 +146,51 @@ class _LoginState extends State<Login> {
                       obscureText: true,
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  Container(
+                    width: double.infinity,
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          PageRouteBuilder(
+                            pageBuilder:
+                                (context, animation, secondaryAnimation) => const ForgotPassword(),
+                            transitionsBuilder: (context, animation,
+                                secondaryAnimation, child) {
+                              const begin =
+                              Offset(1.0, 0.0); // Start from the right
+                              const end =
+                                  Offset.zero; // End at the current position
+                              const curve = Curves.easeInOut;
+
+                              // Define the animation
+                              var tween = Tween(begin: begin, end: end)
+                                  .chain(CurveTween(curve: curve));
+                              var offsetAnimation = animation.drive(tween);
+
+                              return SlideTransition(
+                                position: offsetAnimation,
+                                child: child,
+                              );
+                            },
+                          ),
+                        );
+
+                      },
+                      child: const Text(
+                        "Forgot password?",
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
                     height: 40,
@@ -183,7 +228,7 @@ class _LoginState extends State<Login> {
                     ),
                   ),
                   const SizedBox(
-                    height: 10,
+                    height: 5,
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
