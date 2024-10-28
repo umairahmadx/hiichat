@@ -104,10 +104,9 @@ class _MessageScreenState extends State<MessageScreen> {
             ),
             const SizedBox(width: 10),
             CircleAvatar(
-              backgroundImage: NetworkImage(
-                widget.userMap['profilePic'] ??
-                    'https://st4.depositphotos.com/14903220/22197/v/600/depositphotos_221970610-stock-illustration-abstract-sign-avatar-icon-profile.jpg', // Fallback image
-              ),
+              backgroundImage: widget.userMap['profilePic'] == null
+                  ? AllAPIs.defaultImage
+                  : NetworkImage(widget.userMap['profilePic']),
             ),
             Expanded(
               child: ListTile(
@@ -137,8 +136,9 @@ class _MessageScreenState extends State<MessageScreen> {
                   chatRoomId: widget.chatRoomId, userMap: widget.userMap)),
           Row(
             children: [
-
-              const SizedBox(width: 5,),
+              const SizedBox(
+                width: 5,
+              ),
               Expanded(
                 child: InputWidget(
                   controller: _controller,
@@ -148,7 +148,9 @@ class _MessageScreenState extends State<MessageScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 5,)
+          const SizedBox(
+            height: 5,
+          )
         ],
       ),
     );

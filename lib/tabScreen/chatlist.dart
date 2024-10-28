@@ -79,11 +79,9 @@ class _ChatListScreen extends State<ChatListScreen> {
           'username': (data.containsKey('username') && data['username'] != null) ? data['username'] : 'Hii Chat User', // Default value if username is missing or null
           'profilePic': (data.containsKey('profilePic') && data['profilePic'] != null)
               ? data['profilePic']
-              : 'https://st4.depositphotos.com/14903220/22197/v/600/depositphotos_221970610-stock-illustration-abstract-sign-avatar-icon-profile.jpg', // Default URL if profilePic is missing or null
+              : null, // Default URL if profilePic is missing or null
         };
       }).toList();
-
-
     } catch (e) {
       _showErrorSnackbar("Error occurred while fetching users: $e");
     }
@@ -126,6 +124,7 @@ class _ChatListScreen extends State<ChatListScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -141,6 +140,7 @@ class _ChatListScreen extends State<ChatListScreen> {
                         'uid': otherMemberUid,
                       },
                     );
+
                     return Dismissible(
                       key: Key(chatRooms[index]['chatRoomId']),
                       direction: DismissDirection.endToStart,
@@ -186,10 +186,11 @@ class _ChatListScreen extends State<ChatListScreen> {
                       },
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundImage: NetworkImage(
-                            user['profilePic'] ??
-                                'https://st4.depositphotos.com/14903220/22197/v/600/depositphotos_221970610-stock-illustration-abstract-sign-avatar-icon-profile.jpg',
-                          ),
+                          backgroundImage:
+                          user['profilePic'] == null
+                              ? AllAPIs.defaultImage
+                              : NetworkImage(
+                            user['profilePic']),
                           radius: 30,
                         ),
                         title: Text(

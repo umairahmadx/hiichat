@@ -23,6 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool isLoading = true; // To handle the loading state
   final FirebaseFirestore _firestore = AllAPIs.firestore;
   bool imageLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -33,7 +34,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final img = await ImagePicker().pickImage(source: ImageSource.gallery);
 
     if (img != null) {
-      setState(() {imageLoading = true;});
+      setState(() {
+        imageLoading = true;
+      });
       image = img;
       final ref = FirebaseStorage.instance
           .ref()
@@ -42,10 +45,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final snapshot = await uploadTask!.whenComplete(() => null);
 
       final downloadUrl = await snapshot.ref.getDownloadURL();
-      await _firestore.collection("user").doc(AllAPIs.auth.currentUser?.uid).update({
+      await _firestore
+          .collection("user")
+          .doc(AllAPIs.auth.currentUser?.uid)
+          .update({
         'profilePic': downloadUrl,
       });
-      if(mounted){
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile Uploaded')),
         );
@@ -112,10 +118,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
   }
-
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -189,9 +191,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   children: [
                                     CircleAvatar(
                                       backgroundImage: image == null
-                                          ? NetworkImage(
-                                        userInfo?['Profile'] ?? 'https://i.postimg.cc/nLhKkwhH/default-avatar.jpg',
-                                      )
+                                          ? (userInfo?['Profile'] == null
+                                              ? AllAPIs.defaultImage
+                                              : NetworkImage(
+                                                  userInfo?['Profile']))
                                           : FileImage(File(image!.path)),
                                       radius: 50,
                                     ),
@@ -200,31 +203,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       builder: (context, snapshot) {
                                         if (snapshot.hasData) {
                                           final data = snapshot.data!;
-                                          double progress = data.bytesTransferred / data.totalBytes;
+                                          double progress =
+                                              data.bytesTransferred /
+                                                  data.totalBytes;
                                           return Stack(
                                             alignment: Alignment.center,
                                             children: [
                                               // SizedBox to control the size of the CircleAvatar
                                               SizedBox(
-                                                width: 110,  // Twice the radius (50 * 2) to ensure it takes the full circle
-                                                height: 110, // Same here
-                                                child: CircularProgressIndicator(
-                                                  value: progress, // Progress value (0.0 to 1.0)
-                                                  color: imageLoading?Colors.blue:Colors.transparent,
-                                                  backgroundColor: imageLoading?Colors.grey:Colors.transparent,
-                                                  strokeWidth: 5, // Adjust thickness as needed
+                                                width: 110,
+                                                // Twice the radius (50 * 2) to ensure it takes the full circle
+                                                height: 110,
+                                                // Same here
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  value: progress,
+                                                  // Progress value (0.0 to 1.0)
+                                                  color: imageLoading
+                                                      ? Colors.blue
+                                                      : Colors.transparent,
+                                                  backgroundColor: imageLoading
+                                                      ? Colors.grey
+                                                      : Colors.transparent,
+                                                  strokeWidth:
+                                                      5, // Adjust thickness as needed
                                                 ),
                                               ),
                                             ],
                                           );
                                         } else {
                                           return const SizedBox(
-                                            width: 110,  // Twice the radius (50 * 2) to ensure it takes the full circle
-                                            height: 110, // Same here
-                                            child: CircularProgressIndicator( // Progress value (0.0 to 1.0)
+                                            width: 110,
+                                            // Twice the radius (50 * 2) to ensure it takes the full circle
+                                            height: 110,
+                                            // Same here
+                                            child: CircularProgressIndicator(
+                                              // Progress value (0.0 to 1.0)
                                               color: Colors.transparent,
-                                              backgroundColor: Colors.transparent,
-                                              strokeWidth: 5, // Adjust thickness as needed
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                              strokeWidth:
+                                                  5, // Adjust thickness as needed
                                             ),
                                           ); // No progress to display
                                         }
@@ -313,7 +332,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         ),
-
                       ],
                     ),
                   ));

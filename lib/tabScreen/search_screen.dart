@@ -201,9 +201,10 @@ class _SearchScreenState extends State<SearchScreen> {
                         fetchInitialUsers();
                       },
                       leading: CircleAvatar(
-                        backgroundImage: NetworkImage(
-                          userList[index]['profilePic'] ??
-                              'https://i.postimg.cc/nLhKkwhH/default-avatar.jpg',
+                        backgroundImage: userList[index]['Profile'] == null
+                            ? AllAPIs.defaultImage
+                            : NetworkImage(
+                            userList[index]['profilePic']
                         ),
                       ),
                       title: Text(userList[index]['name'] ?? 'No Name'),
