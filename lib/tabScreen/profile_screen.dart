@@ -29,8 +29,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     displayUserInfo(); // Fetch user data when the screen initializes
   }
+  Future<void> onProfileRemove() async {
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child("images/${AllAPIs.auth.currentUser?.uid}");
+    try {
+      // Delete the image from Firebase Storage
+      await ref.delete();
+      // Remove the image URL from Firestore
+      await _firestore
+          .collection("user")
+          .doc(AllAPIs.auth.currentUser?.uid)
+          .update({
+        'profilePic': FieldValue.delete(),
+      });
+      setState(() {
+        displayUserInfo();
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile Pic Removed')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to remove profile: $e')),
+        );
+      }
+    }
+  }
 
-  Future<void> onProfileTapped() async {
+
+  Future<void> onProfileUpload() async {
     final img = await ImagePicker().pickImage(source: ImageSource.gallery);
 
     if (img != null) {
@@ -57,8 +88,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
       setState(() {
+        image = null;
         uploadTask = null;
         imageLoading = false;
+        displayUserInfo();
       });
     }
   }
@@ -146,7 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             children: [
                               GestureDetector(
                                 onTap: () async {
-                                  bool? confirm = await showDialog(
+                                  int? confirm = await showDialog(
                                       context: context,
                                       builder: (context) {
                                         return AlertDialog(
@@ -157,34 +190,72 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               borderRadius:
                                                   BorderRadius.circular(10)),
                                           actions: [
-                                            SizedBox(
-                                              height: 60,
-                                              child: TextButton(
-                                                style: ButtonStyle(
-                                                    shape: WidgetStatePropertyAll(
-                                                        RoundedRectangleBorder(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        10)))),
-                                                onPressed: () =>
-                                                    Navigator.of(context)
-                                                        .pop(true),
-                                                child: const Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceEvenly,
-                                                  children: [
-                                                    Icon(Icons.image_rounded),
-                                                    Text("Upload Profile Pic"),
-                                                  ],
+                                            Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                TextButton(
+                                                  style: const ButtonStyle(
+                                                      shape:
+                                                          WidgetStatePropertyAll(
+                                                              LinearBorder())),
+                                                  onPressed: () =>
+                                                      Navigator.of(context)
+                                                          .pop(0),
+                                                  child: const SizedBox(
+                                                    height: 50,
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceEvenly,
+                                                      children: [
+                                                        Icon(Icons
+                                                            .image_rounded),
+                                                        Text(
+                                                            "Upload Profile Pic"),
+                                                      ],
+                                                    ),
+                                                  ),
                                                 ),
-                                              ),
+                                                Visibility(
+                                                  visible:
+                                                      userInfo?['Profile'] !=
+                                                          null,
+                                                  child: TextButton(
+                                                    style: const ButtonStyle(
+                                                        shape: WidgetStatePropertyAll(
+                                                            LinearBorder())),
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(1),
+                                                    child: const SizedBox(
+                                                      height: 50,
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceEvenly,
+                                                        children: [
+                                                          Icon(
+                                                              Icons.hide_image),
+                                                          Text(
+                                                              "Remove Profile Pic"),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ],
                                         );
                                       });
-                                  if (confirm == true) onProfileTapped();
+                                  if (confirm == 0) {
+                                    onProfileUpload();
+                                  } else if (confirm == 1) {
+                                    onProfileRemove();
+                                  }
                                 },
                                 child: Stack(
                                   alignment: Alignment.center,
