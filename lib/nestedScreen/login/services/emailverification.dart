@@ -275,20 +275,26 @@ class EmailVerificationState extends State<EmailVerification> {
       bottomNavigationBar: TextButton(
         style: const ButtonStyle(shape: WidgetStatePropertyAll( LinearBorder())),
         onPressed: deleteUser,
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.arrow_back_ios_new_rounded,color: Colors.blue,),
-            SizedBox(width: 10,),
-            Text(
-              "Not your email? Sign up again",
-              style: TextStyle(
-                color: Colors.blue,
-                fontWeight: FontWeight.bold,
+        child: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.arrow_back_ios_new_rounded,color: Colors.blue,),
+              SizedBox(width: 10,),
+              Text(
+                "Not your email? Sign up again",
+                style: TextStyle(
+
+                  // fontSize: 15,
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -230,35 +230,37 @@ class _LoginState extends State<Login> {
                   const SizedBox(
                     height: 5,
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Don't have an account?",
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(
-                                builder: (context) => const Signup()),
-                            (Route<dynamic> route) =>
-                                false, // Removes all previous routes or pages
-                          );
-                        },
-                        child: Text(
-                          " SignUp",
+                  FittedBox(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          "Don't have an account?",
                           style: TextStyle(
                             fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue[500],
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      ),
-                    ],
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                  builder: (context) => const Signup()),
+                              (Route<dynamic> route) =>
+                                  false, // Removes all previous routes or pages
+                            );
+                          },
+                          child: Text(
+                            " SignUp",
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue[500],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
