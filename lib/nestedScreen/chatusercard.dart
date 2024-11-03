@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:hiichat/firebase/firebaseapis.dart';
 import 'package:hiichat/models/message.dart';
@@ -20,7 +21,7 @@ class ChatUserCard extends StatefulWidget {
 
 class _ChatUserCardState extends State<ChatUserCard> {
   Message? _message;
-
+  bool imageError=false;
   static const Map<int, String> _months = {
     1: 'Jan',
     2: 'Feb',
@@ -94,7 +95,7 @@ class _ChatUserCardState extends State<ChatUserCard> {
           leading: CircleAvatar(
             backgroundImage: widget.user.profilePic.isEmpty
                 ? AllAPIs.defaultImage
-                : NetworkImage(widget.user.profilePic),
+                : CachedNetworkImageProvider(widget.user.profilePic),
           ),
           title: Text(
             widget.user.name.isNotEmpty ? widget.user.name : 'HiiChat User',

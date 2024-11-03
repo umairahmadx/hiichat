@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:hiichat/models/chatuser.dart';
 import 'package:hiichat/models/message.dart';
@@ -20,6 +21,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   bool exist = false;
   bool isEmoji = false;
+  bool imageError= false;
 
 
   void checkUserInChatRoom(String userId1,String userId2){
@@ -79,7 +81,7 @@ class _ChatScreenState extends State<ChatScreen> {
             CircleAvatar(
               backgroundImage: widget.user.profilePic.isEmpty
                   ? AllAPIs.defaultImage
-                  : NetworkImage(widget.user.profilePic),
+                  :  CachedNetworkImageProvider(widget.user.profilePic)
             ),
             Expanded(
               child: ListTile(

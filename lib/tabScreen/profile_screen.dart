@@ -1,12 +1,14 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hiichat/firebase/firebaseapis.dart';
 import 'package:hiichat/models/chatuser.dart';
 import 'package:image_picker/image_picker.dart';
-
+import 'package:image/image.dart' as img;
 import '../firebase/authentication.dart';
 import '../nestedScreen/login/services/logout_function.dart';
 
@@ -63,37 +65,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> onProfileUpload() async {
-    final img = await ImagePicker().pickImage(source: ImageSource.gallery,imageQuality: 60);
+    XFile? img2;
 
-    if (img != null) {
+    // Pick image based on platform
+    final ImagePicker picker = ImagePicker();
+    img2 =
+        await picker.pickImage(source: ImageSource.gallery, imageQuality: 60);
+
+    if (img2 != null) {
       setState(() {
         imageLoading = true;
       });
-      image = img;
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child("images/${AllAPIs.auth.currentUser?.uid}");
-      uploadTask = ref.putFile(File(image!.path));
-      final snapshot = await uploadTask!.whenComplete(() => null);
+      try {
+        final bytes = await img2.readAsBytes();
+        img.Image? image = img.decodeImage(bytes);
+        if (image != null) {
+          final List<int> jpeg = img.encodeJpg(image, quality: 60);
+          final Uint8List compressedImageData = Uint8List.fromList(jpeg);
+          final ref = FirebaseStorage.instance
+              .ref()
+              .child("images/${AllAPIs.auth.currentUser?.uid}");
+          uploadTask = ref.putData(compressedImageData);
 
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-      await _firestore
-          .collection('users')
-          .doc(AllAPIs.auth.currentUser?.uid)
-          .update({
-        'profilePic': downloadUrl,
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile Uploaded')),
-        );
+          // Listen for upload progress
+          uploadTask!.snapshotEvents.listen((TaskSnapshot snapshot) {
+            setState(() {
+              imageLoading =
+                  true; // Optional: keep loading state true until upload completes
+            });
+          });
+
+          final snapshot = await uploadTask!.whenComplete(() => null);
+          final downloadUrl = await snapshot.ref.getDownloadURL();
+
+          await _firestore
+              .collection('users')
+              .doc(AllAPIs.auth.currentUser?.uid)
+              .update({
+            'profilePic': downloadUrl,
+          });
+          if(mounted){
+            ScaffoldMessenger.of(context)
+                .showSnackBar(const SnackBar(content: Text('Profile Uploaded')));
+          }
+        } else {
+          throw Exception('Failed to decode image');
+        }
+      } catch (e) {
+        if(mounted){
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+        }
+      } finally {
+        setState(() {
+          image = null;
+          uploadTask = null;
+          imageLoading = false; // Set to false after upload completes
+          displayUserInfo();
+        });
       }
-      setState(() {
-        image = null;
-        uploadTask = null;
-        imageLoading = false;
-        displayUserInfo();
-      });
     }
   }
 
@@ -206,8 +236,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               child: Column(
                 children: [
@@ -232,8 +261,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 backgroundImage: image == null
                                     ? (user.profilePic.isEmpty
                                         ? AllAPIs.defaultImage
-                                        : NetworkImage(user.profilePic))
+                                        : CachedNetworkImageProvider(user
+                                            .profilePic)) // Use CachedNetworkImageProvider
                                     : FileImage(File(image!.path)),
+                                // Use FileImage for selected image
                                 radius: 50,
                               ),
                               StreamBuilder(
@@ -257,8 +288,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             backgroundColor: imageLoading
                                                 ? Colors.grey
                                                 : Colors.transparent,
-                                            strokeWidth:
-                                                5, // Adjust thickness as needed
+                                            strokeWidth: 5,
                                           ),
                                         ),
                                       ],
@@ -267,12 +297,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     return const SizedBox(
                                       width: 110,
                                       height: 110,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.transparent,
-                                        backgroundColor: Colors.transparent,
-                                        strokeWidth:
-                                            5,
-                                      ),
                                     ); // No progress to display
                                   }
                                 },
