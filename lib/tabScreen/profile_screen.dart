@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:hiichat/firebase/firebaseapis.dart';
+import 'package:hiichat/models/chatuser.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../firebase/authentication.dart';
@@ -19,7 +20,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   XFile? image;
   UploadTask? uploadTask;
-  Map<String, dynamic>? userInfo;
+  late ChatUser user;
   bool isLoading = true; // To handle the loading state
   final FirebaseFirestore _firestore = AllAPIs.firestore;
   bool imageLoading = false;
@@ -29,6 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     displayUserInfo(); // Fetch user data when the screen initializes
   }
+
   Future<void> onProfileRemove() async {
     final ref = FirebaseStorage.instance
         .ref()
@@ -38,7 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await ref.delete();
       // Remove the image URL from Firestore
       await _firestore
-          .collection("user")
+          .collection('users')
           .doc(AllAPIs.auth.currentUser?.uid)
           .update({
         'profilePic': FieldValue.delete(),
@@ -60,9 +62,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-
   Future<void> onProfileUpload() async {
-    final img = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final img = await ImagePicker().pickImage(source: ImageSource.gallery,imageQuality: 60);
 
     if (img != null) {
       setState(() {
@@ -77,7 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final downloadUrl = await snapshot.ref.getDownloadURL();
       await _firestore
-          .collection("user")
+          .collection('users')
           .doc(AllAPIs.auth.currentUser?.uid)
           .update({
         'profilePic': downloadUrl,
@@ -96,28 +97,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Function to load user data from Firestore
   void displayUserInfo() async {
     try {
-      // Replace this with the appropriate email value
       String? email = "user_email@example.com";
       email = AllAPIs.auth.currentUser?.email;
-
       await _firestore
-          .collection('user')
+          .collection('users')
           .where("email", isEqualTo: email)
           .get()
           .then((snapshot) async {
         if (snapshot.docs.isNotEmpty) {
-          var userData = snapshot.docs[0].data();
           setState(() {
-            userInfo = {
-              'Name': userData['name'],
-              'UserName': userData['username'],
-              'Email': userData['email'],
-              'Profile': userData['profilePic'],
-              'Uid': userData['uid']
-            };
+            user = ChatUser.fromJson(snapshot.docs[0].data());
             isLoading = false;
           });
         } else {
@@ -152,259 +143,229 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  onProfileClicked() async {
+    int? confirm = await showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            titlePadding: const EdgeInsets.all(0),
+            actionsPadding: const EdgeInsets.all(0),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            actions: [
+              Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextButton(
+                    style: const ButtonStyle(
+                        shape: WidgetStatePropertyAll(LinearBorder())),
+                    onPressed: () => Navigator.of(context).pop(0),
+                    child: const SizedBox(
+                      height: 50,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Icon(Icons.image_rounded),
+                          Text("Upload Profile Pic"),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Visibility(
+                    visible: user.profilePic.isNotEmpty,
+                    child: TextButton(
+                      style: const ButtonStyle(
+                          shape: WidgetStatePropertyAll(LinearBorder())),
+                      onPressed: () => Navigator.of(context).pop(1),
+                      child: const SizedBox(
+                        height: 50,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Icon(Icons.hide_image),
+                            Text("Remove Profile Pic"),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        });
+    if (confirm == 0) {
+      onProfileUpload();
+    } else if (confirm == 1) {
+      onProfileRemove();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: isLoading
-            ? const Center(
-                child: CircularProgressIndicator()) // Show loading spinner
-            : userInfo == null
-                ? const Center(
-                    child: Text(
-                        'No user data found')) // Fallback for null userInfo
-                : SingleChildScrollView(
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(10),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.black26),
+                      borderRadius: const BorderRadius.all(
+                        Radius.circular(20),
+                      ),
+                    ),
                     child: Column(
                       children: [
-                        Container(
-                          margin: const EdgeInsets.all(10),
-                          padding: const EdgeInsets.all(10),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.black26),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(20),
-                            ),
-                          ),
-                          child: Column(
+                        GestureDetector(
+                          onTap: onProfileClicked,
+                          child: Stack(
+                            alignment: Alignment.center,
                             children: [
-                              GestureDetector(
-                                onTap: () async {
-                                  int? confirm = await showDialog(
-                                      context: context,
-                                      builder: (context) {
-                                        return AlertDialog(
-                                          titlePadding: const EdgeInsets.all(0),
-                                          actionsPadding:
-                                              const EdgeInsets.all(0),
-                                          shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(10)),
-                                          actions: [
-                                            Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                TextButton(
-                                                  style: const ButtonStyle(
-                                                      shape:
-                                                          WidgetStatePropertyAll(
-                                                              LinearBorder())),
-                                                  onPressed: () =>
-                                                      Navigator.of(context)
-                                                          .pop(0),
-                                                  child: const SizedBox(
-                                                    height: 50,
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceEvenly,
-                                                      children: [
-                                                        Icon(Icons
-                                                            .image_rounded),
-                                                        Text(
-                                                            "Upload Profile Pic"),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                                Visibility(
-                                                  visible:
-                                                      userInfo?['Profile'] !=
-                                                          null,
-                                                  child: TextButton(
-                                                    style: const ButtonStyle(
-                                                        shape: WidgetStatePropertyAll(
-                                                            LinearBorder())),
-                                                    onPressed: () =>
-                                                        Navigator.of(context)
-                                                            .pop(1),
-                                                    child: const SizedBox(
-                                                      height: 50,
-                                                      child: Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .spaceEvenly,
-                                                        children: [
-                                                          Icon(
-                                                              Icons.hide_image),
-                                                          Text(
-                                                              "Remove Profile Pic"),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        );
-                                      });
-                                  if (confirm == 0) {
-                                    onProfileUpload();
-                                  } else if (confirm == 1) {
-                                    onProfileRemove();
+                              CircleAvatar(
+                                backgroundImage: image == null
+                                    ? (user.profilePic.isEmpty
+                                        ? AllAPIs.defaultImage
+                                        : NetworkImage(user.profilePic))
+                                    : FileImage(File(image!.path)),
+                                radius: 50,
+                              ),
+                              StreamBuilder(
+                                stream: uploadTask?.snapshotEvents,
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasData) {
+                                    final data = snapshot.data!;
+                                    double progress =
+                                        data.bytesTransferred / data.totalBytes;
+                                    return Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 110,
+                                          height: 110,
+                                          child: CircularProgressIndicator(
+                                            value: progress,
+                                            color: imageLoading
+                                                ? Colors.blue
+                                                : Colors.transparent,
+                                            backgroundColor: imageLoading
+                                                ? Colors.grey
+                                                : Colors.transparent,
+                                            strokeWidth:
+                                                5, // Adjust thickness as needed
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  } else {
+                                    return const SizedBox(
+                                      width: 110,
+                                      height: 110,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.transparent,
+                                        backgroundColor: Colors.transparent,
+                                        strokeWidth:
+                                            5,
+                                      ),
+                                    ); // No progress to display
                                   }
                                 },
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    CircleAvatar(
-                                      backgroundImage: image == null
-                                          ? (userInfo?['Profile'] == null
-                                              ? AllAPIs.defaultImage
-                                              : NetworkImage(
-                                                  userInfo?['Profile']))
-                                          : FileImage(File(image!.path)),
-                                      radius: 50,
-                                    ),
-                                    StreamBuilder(
-                                      stream: uploadTask?.snapshotEvents,
-                                      builder: (context, snapshot) {
-                                        if (snapshot.hasData) {
-                                          final data = snapshot.data!;
-                                          double progress =
-                                              data.bytesTransferred /
-                                                  data.totalBytes;
-                                          return Stack(
-                                            alignment: Alignment.center,
-                                            children: [
-                                              // SizedBox to control the size of the CircleAvatar
-                                              SizedBox(
-                                                width: 110,
-                                                // Twice the radius (50 * 2) to ensure it takes the full circle
-                                                height: 110,
-                                                // Same here
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  value: progress,
-                                                  // Progress value (0.0 to 1.0)
-                                                  color: imageLoading
-                                                      ? Colors.blue
-                                                      : Colors.transparent,
-                                                  backgroundColor: imageLoading
-                                                      ? Colors.grey
-                                                      : Colors.transparent,
-                                                  strokeWidth:
-                                                      5, // Adjust thickness as needed
-                                                ),
-                                              ),
-                                            ],
-                                          );
-                                        } else {
-                                          return const SizedBox(
-                                            width: 110,
-                                            // Twice the radius (50 * 2) to ensure it takes the full circle
-                                            height: 110,
-                                            // Same here
-                                            child: CircularProgressIndicator(
-                                              // Progress value (0.0 to 1.0)
-                                              color: Colors.transparent,
-                                              backgroundColor:
-                                                  Colors.transparent,
-                                              strokeWidth:
-                                                  5, // Adjust thickness as needed
-                                            ),
-                                          ); // No progress to display
-                                        }
-                                      },
-                                    )
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                userInfo?['Name'] ?? "No Name Available",
-                                // Display Name or fallback
-                                style: const TextStyle(fontSize: 20),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                userInfo?['UserName'] ??
-                                    "No Username Available",
-                                // Display Username or fallback
-                                style: const TextStyle(
-                                    fontSize: 16, color: Colors.grey),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                userInfo?['Email'] ?? "No Email Available",
-                                // Display Email or fallback
-                                style: const TextStyle(
-                                    fontSize: 16, color: Colors.grey),
-                              ),
+                              )
                             ],
                           ),
                         ),
-                        Container(
-                          margin: const EdgeInsets.all(10),
-                          padding: const EdgeInsets.all(10),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.black26),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(20),
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              const Text(
-                                "About",
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                userInfo?['About'] ??
-                                    'No information available',
-                                // Display About or fallback
-                                style: const TextStyle(
-                                    fontSize: 12, color: Colors.black),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
+                        const SizedBox(height: 10),
+                        Text(
+                          user.name.isNotEmpty
+                              ? user.name
+                              : "No Name Available",
+                          style: const TextStyle(fontSize: 20),
                         ),
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                logoutUser(context);
-                              },
-                              style: ButtonStyle(
-                                elevation: WidgetStateProperty.all(0),
-                                backgroundColor:
-                                    WidgetStateProperty.all(Colors.blue[500]),
-                                shape: WidgetStateProperty.all(
-                                  RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              ),
-                              child: const Text(
-                                "Logout",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
+                        const SizedBox(height: 5),
+                        Text(
+                          user.username.isNotEmpty
+                              ? user.username
+                              : "No Username Available",
+                          style:
+                              const TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          user.email.isNotEmpty
+                              ? user.email
+                              : "No Email Available",
+                          style:
+                              const TextStyle(fontSize: 16, color: Colors.grey),
                         ),
                       ],
                     ),
-                  ));
+                  ),
+                  Container(
+                    margin: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(10),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.black26),
+                      borderRadius: const BorderRadius.all(
+                        Radius.circular(20),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          "About",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          user.about.isNotEmpty
+                              ? user.about
+                              : 'No information available',
+                          // Display About or fallback
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.black),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          logoutUser(context);
+                        },
+                        style: ButtonStyle(
+                          elevation: WidgetStateProperty.all(0),
+                          backgroundColor:
+                              WidgetStateProperty.all(Colors.blue[500]),
+                          shape: WidgetStateProperty.all(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                        child: const Text(
+                          "Logout",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
   }
 }

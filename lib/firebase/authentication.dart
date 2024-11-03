@@ -23,14 +23,17 @@ class AuthService {
 
       // Update the display name in FirebaseAuth
       await credential.user!.updateDisplayName(name);
-
+      final time = DateTime.now().millisecondsSinceEpoch.toString();
       // Store user details in Firestore
-      await _firestore.collection("user").doc(credential.user!.uid).set({
+      await _firestore.collection("users").doc(credential.user!.uid).set({
         'name': name,
         'email': email,
         'username': username,
         'uid': credential.user!.uid,
-        'emailVerified': credential.user!.emailVerified,
+        'createdAt':time,
+        'isOnline' : false,
+        'lastActive':time,
+        'pushToken': '',
       });
 
       result = 'success';
@@ -48,19 +51,15 @@ class AuthService {
   }) async {
     String result = "Some error occurred";
     try {
-      // Sign in the user
       UserCredential credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      // if(!_auth.currentUser!.emailVerified){
-      //   Navigator.of(context).
-      // }
       result = "success";
 
       // Fetch user data from Firestore if needed
       await _firestore
-          .collection('user')
+          .collection('users')
           .where("email", isEqualTo: email)
           .get()
           .then((snapshot) {

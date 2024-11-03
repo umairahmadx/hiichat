@@ -3,7 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../firebase/firebaseapis.dart';
-import '../nestedScreen/contactmessagescreen.dart';
+import '../models/chatuser.dart';
+import '../nestedScreen/chatusercard.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -14,8 +15,8 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final FirebaseAuth _auth = AllAPIs.auth;
-  List<Map<String, dynamic>> userList = [];
-  TextEditingController searchText = TextEditingController();
+  final TextEditingController searchText = TextEditingController();
+  List<ChatUser> userList = []; // Updated to ChatUser type
   bool isLoading = false;
   bool suggested = true;
 
@@ -25,32 +26,25 @@ class _SearchScreenState extends State<SearchScreen> {
     fetchInitialUsers(); // Fetch users on screen load
   }
 
-  // Function to create a unique chat room ID based on UIDs
-  String chatRoomId(String user1, String user2) {
-    return user1.compareTo(user2) < 0 ? "$user1$user2" : "$user2$user1";
-  }
-
   void fetchInitialUsers() async {
-    suggested = true;
     setState(() {
       isLoading = true;
+      suggested = true;
     });
 
     try {
       FirebaseFirestore firestore = AllAPIs.firestore;
-      QuerySnapshot snapshot = await firestore
-          .collection("user")
-          .limit(3) // Limit the number of users fetched to 3
-          .get();
+      QuerySnapshot snapshot =
+          await firestore.collection('users').limit(3).get();
 
-      List<Map<String, dynamic>> tempList = snapshot.docs
-          .map((doc) => doc.data() as Map<String, dynamic>)
-          .where((userData) =>
-              userData['uid'] != _auth.currentUser!.uid) // Exclude your own ID
+      // Convert each document to a ChatUser instance
+      List<ChatUser> tempList = snapshot.docs
+          .map((e) => ChatUser.fromJson(e.data() as Map<String, dynamic>))
+          .where((user) => user.uid != _auth.currentUser!.uid)
           .toList();
 
       setState(() {
-        userList = tempList.isNotEmpty ? tempList : [];
+        userList = tempList;
       });
     } catch (e) {
       if (mounted) {
@@ -65,43 +59,47 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  // Function to search all users whose username starts with the query
   void onSearch(String query) async {
-    if (searchText.text.isEmpty) {
-      fetchInitialUsers();
-      return;
-    }
-
-    suggested = false;
     if (query.isEmpty) {
-      setState(() {
-        userList = [];
-        isLoading = false;
-      });
+      fetchInitialUsers();
       return;
     }
 
     setState(() {
       isLoading = true;
+      suggested = false;
     });
 
     try {
       FirebaseFirestore firestore = AllAPIs.firestore;
-      QuerySnapshot snapshot =
-          await firestore.collection("user").get(); // Fetch all users
+      QuerySnapshot snapshot = await firestore.collection('users').get();
 
-      List<Map<String, dynamic>> tempList = snapshot.docs
-          .map((doc) => doc.data() as Map<String, dynamic>)
-          .where((userData) {
-        String name = userData['name']?.toLowerCase() ?? '';
-        String username = userData['username']?.toLowerCase() ?? '';
+      // Filter and convert to ChatUser instances based on the search query
+      List<ChatUser> tempList = snapshot.docs
+          .map((doc) => ChatUser.fromJson(doc.data() as Map<String, dynamic>))
+          .where((user) {
+        String name = user.name.toLowerCase();
+        String username = user.username.toLowerCase();
         String searchQuery = query.toLowerCase();
         return (name.contains(searchQuery) || username.contains(searchQuery)) &&
-            userData['uid'] != _auth.currentUser!.uid; // Exclude your own ID
+            user.uid != _auth.currentUser!.uid;
       }).toList();
 
+      tempList.sort((a, b) {
+        String searchQuery = query.toLowerCase();
+        int positionA = a.name.toLowerCase().indexOf(searchQuery);
+        if (positionA == -1) {
+          positionA = a.username.toLowerCase().indexOf(searchQuery);
+        }
+        int positionB = b.name.toLowerCase().indexOf(searchQuery);
+        if (positionB == -1) {
+          positionB = b.username.toLowerCase().indexOf(searchQuery);
+        }
+        return positionA.compareTo(positionB);
+      });
+
       setState(() {
-        userList = tempList.isNotEmpty ? tempList : [];
+        userList = tempList;
       });
     } catch (e) {
       if (mounted) {
@@ -120,106 +118,58 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
+        Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          width: double.infinity,
           child: SearchBar(
             hintText: "Search User",
             elevation: const WidgetStatePropertyAll(0),
-            shape: WidgetStatePropertyAll(RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10))),
-            trailing: <Widget>[
+            shape: WidgetStatePropertyAll(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            trailing: [
               isLoading
-                  ? Container(
-                      margin: const EdgeInsets.fromLTRB(0, 0, 10, 0),
-                      height: 20,
-                      width: 20,
-                      child: const CircularProgressIndicator(),
+                  ? const Padding(
+                      padding: EdgeInsets.only(right: 10),
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : IconButton(
                       onPressed: () => onSearch(searchText.text),
                       icon: const Icon(Icons.search_rounded),
-                    )
+                    ),
             ],
             controller: searchText,
-            padding: const WidgetStatePropertyAll<EdgeInsets>(
-                EdgeInsets.fromLTRB(10, 0, 10, 0)),
-            onChanged: (query) {
-              onSearch(query); // Perform search immediately when typing
-            },
+            padding: const WidgetStatePropertyAll(
+                EdgeInsets.symmetric(horizontal: 10)),
+            onChanged: onSearch,
           ),
         ),
         const SizedBox(height: 10),
-        Container(
-            width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: 20),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Align(
+            alignment: Alignment.centerLeft,
             child: Text(
               suggested ? "Suggestions" : "Result",
               textDirection: TextDirection.ltr,
               textAlign: TextAlign.start,
-            )),
-        userList.isNotEmpty
-            ? Expanded(
-                child: ListView.builder(
+            ),
+          ),
+        ),
+        Expanded(
+          child: userList.isNotEmpty
+              ? ListView.builder(
                   itemCount: userList.length,
+                  physics: const BouncingScrollPhysics(),
                   itemBuilder: (context, index) {
-                    return ListTile(
-                      onTap: () {
-                        searchText.clear();
-                        String currentUserId = _auth.currentUser!.uid;
-                        String otherUserUid = userList[index]['uid'].toString();
-                        String roomId = chatRoomId(currentUserId, otherUserUid);
-                        Navigator.of(context).push(
-                          PageRouteBuilder(
-                            pageBuilder:
-                                (context, animation, secondaryAnimation) =>
-                                    MessageScreen(
-                              userMap: userList[index],
-                              chatRoomId: roomId,
-                            ),
-                            transitionsBuilder: (context, animation,
-                                secondaryAnimation, child) {
-                              const begin =
-                                  Offset(1.0, 0.0); // Start from the right
-                              const end =
-                                  Offset.zero; // End at the current position
-                              const curve = Curves.easeInOut;
-
-                              // Define the animation
-                              var tween = Tween(begin: begin, end: end)
-                                  .chain(CurveTween(curve: curve));
-                              var offsetAnimation = animation.drive(tween);
-
-                              return SlideTransition(
-                                position: offsetAnimation,
-                                child: child,
-                              );
-                            },
-                          ),
-                        );
-
-                        fetchInitialUsers();
-                      },
-                      leading: CircleAvatar(
-                        backgroundImage: userList[index]['Profile'] == null
-                            ? AllAPIs.defaultImage
-                            : NetworkImage(
-                            userList[index]['profilePic']
-                        ),
-                      ),
-                      title: Text(userList[index]['name'] ?? 'No Name'),
-                      subtitle: Text(
-                        userList[index]['username'] ?? 'No Username',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    );
+                    return ChatUserCard(user: userList[index],isSearchScreen: true,);
                   },
+                )
+              : Center(
+                  child: isLoading
+                      ? const CircularProgressIndicator()
+                      : const Text("No results found"),
                 ),
-              )
-            : isLoading
-                ? const SizedBox
-                    .shrink() // Avoid showing anything while loading
-                : const Text("No results found"),
+        ),
       ],
     );
   }

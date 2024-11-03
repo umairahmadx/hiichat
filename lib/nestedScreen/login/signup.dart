@@ -15,16 +15,28 @@ class Signup extends StatefulWidget {
 }
 
 Future<bool> isUsernameAvailable(String username) async {
-  // Reference to the Firestore collection
+  // Check if the 'users' collection has any documents
+  final QuerySnapshot collectionCheck = await AllAPIs.firestore
+      .collection('users')
+      .limit(1)
+      .get();
+
+  // If 'users' collection is empty, assume it doesn't exist yet
+  if (collectionCheck.docs.isEmpty) {
+    return true; // No users collection, so username is available
+  }
+
+  // Now check for the specific username
   final QuerySnapshot result = await AllAPIs.firestore
-      .collection('user')
+      .collection('users')
       .where('username', isEqualTo: username)
       .limit(1)
       .get();
 
-  // Check if any document with the same username exists
-  return result.docs.isEmpty; // Returns true if the username is available
+  // Returns true if the username is available (no document with the username found)
+  return result.docs.isEmpty;
 }
+
 
 class _SignupState extends State<Signup> {
   String _email = "";

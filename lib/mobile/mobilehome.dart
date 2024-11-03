@@ -43,8 +43,8 @@ class _MobileHomeState extends State<MobileHome> {
         ],
       ),
       body: _widgets[currentIndex],
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(10),
+      bottomNavigationBar: SizedBox(
+        height: 60,
         child: SalomonBottomBar(
           currentIndex: currentIndex,
           onTap: (i) => setState(() => currentIndex = i),
@@ -53,17 +53,17 @@ class _MobileHomeState extends State<MobileHome> {
             SalomonBottomBarItem(
               icon: const Icon(Icons.home),
               title: const Text("Home"),
-              selectedColor: Colors.purple,
+              selectedColor: const Color(0xFF0D47A1),
             ),
             SalomonBottomBarItem(
               icon: const Icon(Icons.search),
               title: const Text("Search"),
-              selectedColor: Colors.purple,
+              selectedColor: const Color(0xFF0D47A1),
             ),
             SalomonBottomBarItem(
               icon: const Icon(Icons.person_rounded),
               title: const Text("Profile"),
-              selectedColor: Colors.purple,
+              selectedColor: const Color(0xFF0D47A1),
             ),
           ],
         ),

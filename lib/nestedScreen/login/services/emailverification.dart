@@ -72,12 +72,7 @@ class EmailVerificationState extends State<EmailVerification> {
       user = AllAPIs.auth.currentUser; // Get the updated user
 
       if (user != null && user.emailVerified) {
-        await AllAPIs.firestore
-            .collection('user')
-            .doc(user.uid)
-            .update({
-          'emailVerified': user.emailVerified,
-        });
+
         if (mounted) {
           _showSnackBar("Verification successfully verified");
           Navigator.of(context).pushAndRemoveUntil(
@@ -127,7 +122,7 @@ class EmailVerificationState extends State<EmailVerification> {
         try {
           // Delete user document from Firestore
           await AllAPIs.firestore
-              .collection('user')
+              .collection('users')
               .doc(user.uid)
               .delete();
           // Delete the user from Firebase Auth
