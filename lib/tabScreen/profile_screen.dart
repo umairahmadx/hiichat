@@ -262,7 +262,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ? (user.profilePic.isEmpty
                                         ? AllAPIs.defaultImage
                                         : CachedNetworkImageProvider(user
-                                            .profilePic)) // Use CachedNetworkImageProvider
+                                            .profilePic))
                                     : FileImage(File(image!.path)),
                                 // Use FileImage for selected image
                                 radius: 50,
