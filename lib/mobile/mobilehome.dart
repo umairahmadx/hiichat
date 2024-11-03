@@ -15,12 +15,31 @@ class MobileHome extends StatefulWidget {
 
 class _MobileHomeState extends State<MobileHome> {
   int currentIndex = 0; // Moved currentIndex to the state
+  final FocusNode searchFocusNode = FocusNode();
+  void changeTab() {
+    setState(() => currentIndex = 1);
+    Future.delayed(Duration.zero, () {
+      searchFocusNode.requestFocus();
+    });
+  }
 
-  final List<Widget> _widgets = [
-    const ChatListScreen(),
-    const SearchScreen(),
-    const ProfileScreen(),
-  ];
+  late final List<Widget> _widgets;
+
+  @override
+  void initState() {
+    super.initState();
+    _widgets = [
+      ChatListScreen(searchTab: changeTab),
+      SearchScreen(focusNode: searchFocusNode),
+      const ProfileScreen(),
+    ];
+  }
+  @override
+  void dispose() {
+    searchFocusNode.dispose(); // Dispose the focus node
+    super.dispose();
+  }
+
   final List<String> screenName = ["Chat", "Search", "Profile"];
 
   @override

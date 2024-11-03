@@ -4,7 +4,8 @@ import 'package:hiichat/nestedScreen/chatusercard.dart';
 import '../firebase/firebaseapis.dart';
 
 class ChatListScreen extends StatefulWidget {
-  const ChatListScreen({super.key});
+  final Function searchTab;
+  const ChatListScreen({super.key, required this.searchTab});
 
   @override
   State<ChatListScreen> createState() => _ChatListScreen();
@@ -97,7 +98,9 @@ class _ChatListScreen extends State<ChatListScreen> {
       floatingActionButton: FloatingActionButton(
         elevation: 3,
         backgroundColor: Colors.blue,
-        onPressed: () {},
+        onPressed: (){
+          widget.searchTab();
+        },
         child: const Icon(
           Icons.add_comment_rounded,
           color: Colors.white,

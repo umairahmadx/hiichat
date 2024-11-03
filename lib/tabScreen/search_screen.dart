@@ -7,7 +7,9 @@ import '../models/chatuser.dart';
 import '../nestedScreen/chatusercard.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final FocusNode focusNode;
+
+  const SearchScreen({required this.focusNode, super.key});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -19,6 +21,7 @@ class _SearchScreenState extends State<SearchScreen> {
   List<ChatUser> userList = []; // Updated to ChatUser type
   bool isLoading = false;
   bool suggested = true;
+  bool _isMounted = true;
 
   @override
   void initState() {
@@ -26,11 +29,19 @@ class _SearchScreenState extends State<SearchScreen> {
     fetchInitialUsers(); // Fetch users on screen load
   }
 
+  @override
+  void dispose() {
+    _isMounted = false; // Set to false when widget is disposed
+    super.dispose();
+  }
+
   void fetchInitialUsers() async {
-    setState(() {
+    if(_isMounted) {
+      setState(() {
       isLoading = true;
       suggested = true;
     });
+    }
 
     try {
       FirebaseFirestore firestore = AllAPIs.firestore;
@@ -43,9 +54,11 @@ class _SearchScreenState extends State<SearchScreen> {
           .where((user) => user.uid != _auth.currentUser!.uid)
           .toList();
 
-      setState(() {
+      if(_isMounted) {
+        setState(() {
         userList = tempList;
       });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -53,9 +66,11 @@ class _SearchScreenState extends State<SearchScreen> {
         );
       }
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if(_isMounted){
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -118,29 +133,38 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: SearchBar(
-            hintText: "Search User",
-            elevation: const WidgetStatePropertyAll(0),
-            shape: WidgetStatePropertyAll(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            trailing: [
-              isLoading
-                  ? const Padding(
-                      padding: EdgeInsets.only(right: 10),
-                      child: CircularProgressIndicator(strokeWidth: 2),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 10),
+
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: TextField(
+            textAlignVertical: TextAlignVertical.center,
+            controller: searchText,
+            focusNode: widget.focusNode,
+            keyboardType: TextInputType.text,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: "Search User",
+              border: InputBorder.none,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+              suffixIcon: isLoading
+                  ? Container(
+                      padding: const EdgeInsets.all(15),
+                      height: 40,
+                      width: 40,
+                      child: const CircularProgressIndicator(),
                     )
                   : IconButton(
                       onPressed: () => onSearch(searchText.text),
                       icon: const Icon(Icons.search_rounded),
                     ),
-            ],
-            controller: searchText,
-            padding: const WidgetStatePropertyAll(
-                EdgeInsets.symmetric(horizontal: 10)),
+            ),
             onChanged: onSearch,
+            onSubmitted: onSearch,
           ),
         ),
         const SizedBox(height: 10),
@@ -161,7 +185,10 @@ class _SearchScreenState extends State<SearchScreen> {
                   itemCount: userList.length,
                   physics: const BouncingScrollPhysics(),
                   itemBuilder: (context, index) {
-                    return ChatUserCard(user: userList[index],isSearchScreen: true,);
+                    return ChatUserCard(
+                      user: userList[index],
+                      isSearchScreen: true,
+                    );
                   },
                 )
               : Center(
