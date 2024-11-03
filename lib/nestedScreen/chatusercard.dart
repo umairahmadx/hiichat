@@ -39,7 +39,9 @@ class _ChatUserCardState extends State<ChatUserCard> {
   String formatDateTime(String timestamp, BuildContext context) {
     final timeOfDay = DateTime.fromMillisecondsSinceEpoch(int.parse(timestamp));
     final now = DateTime.now();
-    final difference = now.difference(timeOfDay).inDays;
+    final difference = now
+        .difference(timeOfDay)
+        .inDays;
 
     if (timeOfDay.month == now.month && timeOfDay.year == now.year) {
       if (timeOfDay.day == now.day) {
@@ -51,35 +53,43 @@ class _ChatUserCardState extends State<ChatUserCard> {
 
     return timeOfDay.year == now.year
         ? '${timeOfDay.day} ${_months[timeOfDay.month] ?? ''}'
-        : '${timeOfDay.day} ${_months[timeOfDay.month] ?? ''} ${timeOfDay.year}';
+        : '${timeOfDay.day} ${_months[timeOfDay.month] ?? ''} ${timeOfDay
+        .year}';
   }
 
   Widget trailingMessage() {
     if (_message == null) return const SizedBox();
     return _message!.fromid == AllAPIs.auth.currentUser?.uid ||
-            _message!.read.isNotEmpty
+        _message!.read.isNotEmpty
         ? Text(formatDateTime(_message!.sent, context))
         : Container(
-            height: 15,
-            width: 15,
-            decoration: const BoxDecoration(
-              color: Colors.greenAccent,
-              borderRadius: BorderRadius.all(Radius.circular(15)),
-            ),
-          );
+      height: 15,
+      width: 15,
+      decoration: const BoxDecoration(
+        color: Colors.greenAccent,
+        borderRadius: BorderRadius.all(Radius.circular(15)),
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    String message='';
     return StreamBuilder(
       stream: AllAPIs.getLastMessages(widget.user),
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data?.docs.isNotEmpty == true) {
           _message = Message.fromJson(snapshot.data!.docs.first.data());
+          message =
+              _message?.msg ?? widget.user.username;
         } else {
           _message = null;
         }
-
         return ListTile(
           leading: CircleAvatar(
             backgroundImage: widget.user.profilePic.isEmpty
@@ -92,39 +102,41 @@ class _ChatUserCardState extends State<ChatUserCard> {
           ),
           subtitle: widget.isSearchScreen
               ? Text(
-                  widget.user.username,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  style: const TextStyle(color: Colors.grey),
-                )
+            widget.user.username,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: const TextStyle(color: Colors.grey),
+          )
               : Row(
-                  children: [
-                    if (_message?.fromid == AllAPIs.auth.currentUser?.uid)
-                      Icon(
-                        _message!.read.isNotEmpty
-                            ? Icons.done_all_rounded
-                            : Icons.done,
-                        color: _message!.read.isNotEmpty
-                            ? Colors.blue
-                            : Colors.grey,
-                        size: 15,
-                      ),
-                    const SizedBox(
-                      width: 3,
-                    ),
-                    Text(
-                      _message?.msg ?? widget.user.username,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ],
+            children: [
+              if (_message?.fromid == AllAPIs.auth.currentUser?.uid)
+                Icon(
+                  _message!.read.isNotEmpty
+                      ? Icons.done_all_rounded
+                      : Icons.done,
+                  color: _message!.read.isNotEmpty
+                      ? Colors.blue
+                      : Colors.grey,
+                  size: 15,
                 ),
-          trailing: !widget.isSearchScreen ? trailingMessage() : null,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ChatScreen(user: widget.user)),
+              const SizedBox(
+                width: 3,
+              ),
+              Text(
+                message,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: const TextStyle(color: Colors.grey),
+              ),
+            ],
           ),
+          trailing: !widget.isSearchScreen ? trailingMessage() : null,
+          onTap: () =>
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => ChatScreen(user: widget.user)),
+              ),
         );
       },
     );
