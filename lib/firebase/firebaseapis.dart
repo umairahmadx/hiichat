@@ -86,6 +86,41 @@ class AllAPIs {
         .snapshots();
   }
 
+  static Stream<QuerySnapshot> getLastMessageSort(ChatUser user) {
+    return firestore
+        .collection('chat/${getConversationID(user.uid)}/messages')
+        .orderBy('sent', descending: true)
+        .limit(1)
+        .snapshots();
+  }
+
+  static Stream<List<String>> onChatRoomChange() {
+    final user = FirebaseAuth.instance.currentUser!;
+    final chatRoomsRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('chatRooms');
+
+    return chatRoomsRef.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => doc.id).toList();
+    });
+  }
+
+  static Future<String> getLastMessageTime(String uid) async {
+    final snapshot = await firestore
+        .collection("chat/${getConversationID(uid)}/messages")
+        .orderBy('sent', descending: true)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      Message message = Message.fromJson(snapshot.docs.first.data());
+      return message.sent; // Return the sent timestamp
+    }
+    return ""; // Return an empty string if no messages
+  }
+
+
   static Future<void> addChatRoom(String userUID1, String userUID2) async {
     firestore
         .collection("users")
@@ -94,6 +129,6 @@ class AllAPIs {
         .doc(userUID2)
         .set({});
   }
-
+  static List<Map<String, String>> userList = [];
   static FirebaseAuth auth = FirebaseAuth.instance..setLanguageCode('en');
 }

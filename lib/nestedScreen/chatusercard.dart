@@ -8,11 +8,13 @@ import 'chatscreen.dart';
 class ChatUserCard extends StatefulWidget {
   final ChatUser user;
   final bool isSearchScreen;
+  final Function updateList;
 
   const ChatUserCard({
     required this.user,
     this.isSearchScreen = false,
     super.key,
+    required this.updateList,          // Default value for updateList
   });
 
   @override
@@ -22,6 +24,46 @@ class ChatUserCard extends StatefulWidget {
 class _ChatUserCardState extends State<ChatUserCard> {
   Message? _message;
   bool imageError = false;
+  void addOrUpdateUser(Map<String, dynamic> user) {
+    final String uid = user['uid']?.toString() ?? '';
+    final String lastMessage = user['lastmessage']?.toString() ?? '0'; // Default to '0' if null
+
+    // Create a formatted user map with the correct types
+    Map<String, String> formattedUser = {
+      'uid': uid,
+      'lastmessage': lastMessage,
+      // Add other fields you need, ensuring they're strings
+    };
+
+    int index = AllAPIs.userList.indexWhere((existingUser) => existingUser['uid'] == formattedUser['uid']);
+
+    if (index != -1) {
+      // If the uid exists, check if the new user data is different
+      Map<String, String> existingUser = AllAPIs.userList[index];
+
+      // Only update if there is a change
+      bool shouldUpdate = false;
+
+      for (var key in formattedUser.keys) {
+        if (existingUser[key] != formattedUser[key]) {
+          shouldUpdate = true;
+          break;
+        }
+      }
+
+      if (shouldUpdate) {
+        AllAPIs.userList[index] = formattedUser;
+        if (!widget.isSearchScreen) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            widget.updateList(); // Update the UI if not on search screen
+          });
+        }
+      }
+    } else {
+      AllAPIs.userList.add(formattedUser);
+    }
+  }
+
   static const Map<int, String> _months = {
     1: 'Jan',
     2: 'Feb',
@@ -83,7 +125,12 @@ class _ChatUserCardState extends State<ChatUserCard> {
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data?.docs.isNotEmpty == true) {
           _message = Message.fromJson(snapshot.data!.docs.first.data());
-          message = _message?.msg ?? widget.user.username;
+          Map<String, dynamic> newUser = {
+            'uid': widget.user.uid,
+            'lastmessage': _message?.sent
+          };
+          addOrUpdateUser(newUser);
+              message = _message?.msg ?? widget.user.username;
         } else {
           _message = null;
         }

@@ -186,6 +186,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   physics: const BouncingScrollPhysics(),
                   itemBuilder: (context, index) {
                     return ChatUserCard(
+                      updateList: ()=>true,
                       user: userList[index],
                       isSearchScreen: true,
                     );
