@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:hiichat/firebase/firebaseapis.dart';
 import 'package:hiichat/models/message.dart';
@@ -23,9 +24,16 @@ String formatTime(String time, BuildContext context) {
   // Return the formatted time
   return formattedTime;
 }
+String formatReadTime(Timestamp? time,BuildContext context){
 
+  final timeOfDay = TimeOfDay.fromDateTime(DateTime.fromMillisecondsSinceEpoch(time!.millisecondsSinceEpoch));
+  final formattedTime = timeOfDay.format(context);
 
+  // Return the formatted time
+  return formattedTime;
+}
 class _MessageCardState extends State<MessageCard> {
+  bool repeat=true;
   @override
   Widget build(BuildContext context) {
     return widget.message.fromid == AllAPIs.auth.currentUser?.uid
@@ -51,8 +59,8 @@ class _MessageCardState extends State<MessageCard> {
             Row(
               children: [
                 Text(
-                  widget.message.read.isNotEmpty
-                      ? formatTime(widget.message.read, context)
+                  widget.message.read!=null
+                      ? formatReadTime(widget.message.read, context)
                       : "Not read",
                   style: const TextStyle(
                     fontSize: 8,
@@ -61,12 +69,14 @@ class _MessageCardState extends State<MessageCard> {
                 ),
                 const SizedBox(width: 2),
                 Icon(
-                  color: widget.message.read.isNotEmpty
-                      ? Colors.blue
-                      : Colors.grey,
-                  widget.message.read.isNotEmpty
-                      ? Icons.done_all_rounded
-                      : Icons.done_rounded,
+                  color: widget.message.status == Status.wait || widget.message.status == Status.unread
+                      ? Colors.grey
+                      : Colors.blue,
+                  widget.message.status == Status.wait
+                      ? Icons.access_time
+                      : widget.message.status == Status.read
+                          ? Icons.done_all_rounded
+                          : Icons.done_rounded,
                   size: 8,
                 )
               ],
@@ -80,7 +90,7 @@ class _MessageCardState extends State<MessageCard> {
                 top: widget.previousId == widget.message.fromid ? 2 : 10,
                 bottom: 0,
                 right: 10),
-            padding: const EdgeInsets.fromLTRB(13,10,13,10),
+            padding: const EdgeInsets.fromLTRB(13, 10, 13, 10),
             decoration: BoxDecoration(
                 color: Colors.blue,
                 borderRadius: BorderRadius.only(
@@ -101,7 +111,8 @@ class _MessageCardState extends State<MessageCard> {
   }
 
   Widget _whiteMessage() {
-    if(widget.message.read.isEmpty){
+    if(widget.message.status == Status.unread && repeat){
+      // repeat=false;
       AllAPIs.updateMessageReadStatus(widget.message);
     }
     return Row(
@@ -115,7 +126,7 @@ class _MessageCardState extends State<MessageCard> {
                 top: widget.previousId == widget.message.fromid ? 2 : 10,
                 bottom: 0,
                 right: 10),
-            padding: const EdgeInsets.fromLTRB(13,10,13,10),
+            padding: const EdgeInsets.fromLTRB(13, 10, 13, 10),
             decoration: BoxDecoration(
                 color: const Color(0xFFE8E8EE),
                 borderRadius: BorderRadius.only(
@@ -134,7 +145,7 @@ class _MessageCardState extends State<MessageCard> {
         Container(
           margin: const EdgeInsets.only(bottom: 10, right: 5),
           child: Text(
-            formatTime(widget.message.sent,context),
+            formatReadTime(widget.message.serverTime, context),
             style: const TextStyle(fontSize: 8, color: Colors.grey),
           ),
         ),

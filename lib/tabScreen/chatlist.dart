@@ -5,19 +5,14 @@ import '../firebase/firebaseapis.dart';
 
 class ChatListScreen extends StatefulWidget {
   final Function searchTab;
-
   const ChatListScreen({super.key, required this.searchTab});
 
   @override
   State<ChatListScreen> createState() => _ChatListScreen();
 }
 
-class _ChatListScreen extends State<ChatListScreen>
-    with AutomaticKeepAliveClientMixin {
-  List<ChatUser> list = []; // This will hold the last messages and UIDs
-
-  @override
-  bool get wantKeepAlive => true;
+class _ChatListScreen extends State<ChatListScreen> {
+  List<ChatUser> list = [];
 
   Widget noChatsFound() {
     return const Center(
@@ -35,18 +30,18 @@ class _ChatListScreen extends State<ChatListScreen>
             style: TextStyle(
               fontSize: 24.0,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: Colors.black, // Use a contrasting color
             ),
-          ),
+          ), // Space between text and subtitle
           Padding(
             padding: EdgeInsets.all(10.0),
             child: Text(
               "Head over to the Search Tab to start a new chat!",
               style: TextStyle(
                 fontSize: 16.0,
-                color: Colors.grey,
+                color: Colors.grey, // Softer color for the subtitle
               ),
-              textAlign: TextAlign.center,
+              textAlign: TextAlign.center, // Center-align the subtitle
             ),
           ),
         ],
@@ -54,101 +49,65 @@ class _ChatListScreen extends State<ChatListScreen>
     );
   }
 
-  Future<List<Map<String, String>>> fetchAndUpdateUserList(List<String> uids) async {
-    try {
-      // Fetch last messages for all user IDs
-      Map<String, String> lastMessages = {};
-      await Future.wait(
-        uids.map((uid) async {
-          lastMessages[uid] = await AllAPIs.getLastMessageTime(uid); // Default to '0' if null
-        }),
-      );
-
-      // Prepare updated user list based on the fetched last messages
-      List<Map<String, String>> updatedUserList = [];
-      for (var uid in uids) {
-        updatedUserList.add({
-          'uid': uid,
-          'lastmessage': lastMessages[uid] ?? '0' // Ensure it's a string
-        });
-      }
-
-      // Sort the userList by last message timestamp
-      updatedUserList.sort((a, b) {
-        int timeA = int.tryParse(a['lastmessage'] ?? '0') ?? 0;
-        int timeB = int.tryParse(b['lastmessage'] ?? '0') ?? 0;
-        return timeB.compareTo(timeA); // Sort in descending order
-      });
-
-      return updatedUserList; // Return updated user list
-    } catch (e) {
-      return []; // Return an empty list on error
-    }
-  }
-
-
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
-
     return Scaffold(
       body: StreamBuilder(
         stream: AllAPIs.getMyChatRoomsId(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.hasData) {
+            final userIds = snapshot.data?.docs.map((e) => e.id).toList() ?? [];
+            if (userIds.isEmpty) {
+              return noChatsFound();
+            }
+            return StreamBuilder(
+              stream: AllAPIs.getUsers(userIds),
+              builder: (context, snapshot) {
+                switch (snapshot.connectionState) {
+                  case ConnectionState.none:
+                  case ConnectionState.waiting:
+                    return const Center(child: CircularProgressIndicator());
+                  case ConnectionState.active:
+                  case ConnectionState.done:
+                    if (snapshot.hasData) {
+                      final data = snapshot.data?.docs;
+
+                      // Convert and sort the data based on the order of `userIds`
+                      list = data
+                          ?.map((e) => ChatUser.fromJson(e.data()))
+                          .toList() ?? [];
+
+                      // Sort the list according to the order in `userIds`
+                      list.sort((a, b) =>
+                          userIds.indexOf(a.uid).compareTo(userIds.indexOf(b.uid)));
+                    }
+
+                    if (list.isNotEmpty) {
+                      return ListView.builder(
+                        itemCount: list.length,
+                        physics: const BouncingScrollPhysics(),
+                        itemBuilder: (context, index) {
+                          return ChatUserCard(user: list[index]);
+                        },
+                      );
+                    } else {
+                      return noChatsFound();
+                    }
+                }
+              },
+            );
+
+          } else {
             return const Center(child: CircularProgressIndicator());
           }
-
-          final userIds = snapshot.data?.docs.map((e) => e.id).toList() ?? [];
-          if (userIds.isEmpty) {
-            return noChatsFound();
-          }
-
-          return FutureBuilder<List<Map<String, String>>>(
-            future: fetchAndUpdateUserList(userIds),
-            builder: (context, lastMessagesSnapshot) {
-              if (lastMessagesSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              // Use the updated user list from the future
-              final updatedUserList = lastMessagesSnapshot.data ?? [];
-              AllAPIs.userList = updatedUserList; // Assign to your API list
-
-              return StreamBuilder(
-                stream: AllAPIs.getUsers(userIds),
-                builder: (context, usersSnapshot) {
-                  if (!usersSnapshot.hasData || usersSnapshot.data?.docs.isEmpty == true) {
-                    return const Center(child: CircularProgressIndicator(),);
-                  }
-
-                  final users = usersSnapshot.data!.docs
-                      .map((e) => ChatUser.fromJson(e.data()))
-                      .toList();
-
-                  return ListView.builder(
-                    itemCount: AllAPIs.userList.length,
-                    physics: const BouncingScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      final userMap = AllAPIs.userList[index];
-                      // Find the corresponding ChatUser object based on uid
-                      final chatUser = users.firstWhere((user) => user.uid == userMap['uid']);
-                      return ChatUserCard(
-                        user: chatUser,
-                        updateList: () => setState(() {}), // Pass a function reference here
-                      );
-                    },
-                  );
-                },
-              );
-            },
-          );
         },
       ),
       floatingActionButton: FloatingActionButton(
         elevation: 3,
         backgroundColor: Colors.blue,
-        onPressed: () => widget.searchTab(),
+        onPressed: (){
+          widget.searchTab();
+        },
         child: const Icon(
           Icons.add_comment_rounded,
           color: Colors.white,

@@ -8,13 +8,11 @@ import 'chatscreen.dart';
 class ChatUserCard extends StatefulWidget {
   final ChatUser user;
   final bool isSearchScreen;
-  final Function updateList;
 
   const ChatUserCard({
     required this.user,
     this.isSearchScreen = false,
     super.key,
-    required this.updateList,          // Default value for updateList
   });
 
   @override
@@ -24,45 +22,6 @@ class ChatUserCard extends StatefulWidget {
 class _ChatUserCardState extends State<ChatUserCard> {
   Message? _message;
   bool imageError = false;
-  void addOrUpdateUser(Map<String, dynamic> user) {
-    final String uid = user['uid']?.toString() ?? '';
-    final String lastMessage = user['lastmessage']?.toString() ?? '0'; // Default to '0' if null
-
-    // Create a formatted user map with the correct types
-    Map<String, String> formattedUser = {
-      'uid': uid,
-      'lastmessage': lastMessage,
-      // Add other fields you need, ensuring they're strings
-    };
-
-    int index = AllAPIs.userList.indexWhere((existingUser) => existingUser['uid'] == formattedUser['uid']);
-
-    if (index != -1) {
-      // If the uid exists, check if the new user data is different
-      Map<String, String> existingUser = AllAPIs.userList[index];
-
-      // Only update if there is a change
-      bool shouldUpdate = false;
-
-      for (var key in formattedUser.keys) {
-        if (existingUser[key] != formattedUser[key]) {
-          shouldUpdate = true;
-          break;
-        }
-      }
-
-      if (shouldUpdate) {
-        AllAPIs.userList[index] = formattedUser;
-        if (!widget.isSearchScreen) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            widget.updateList(); // Update the UI if not on search screen
-          });
-        }
-      }
-    } else {
-      AllAPIs.userList.add(formattedUser);
-    }
-  }
 
   static const Map<int, String> _months = {
     1: 'Jan',
@@ -100,7 +59,7 @@ class _ChatUserCardState extends State<ChatUserCard> {
   Widget trailingMessage() {
     if (_message == null) return const SizedBox();
     return _message!.fromid == AllAPIs.auth.currentUser?.uid ||
-            _message!.read.isNotEmpty
+            _message?.read != null
         ? Text(formatDateTime(_message!.sent, context))
         : Container(
             height: 15,
@@ -125,12 +84,7 @@ class _ChatUserCardState extends State<ChatUserCard> {
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data?.docs.isNotEmpty == true) {
           _message = Message.fromJson(snapshot.data!.docs.first.data());
-          Map<String, dynamic> newUser = {
-            'uid': widget.user.uid,
-            'lastmessage': _message?.sent
-          };
-          addOrUpdateUser(newUser);
-              message = _message?.msg ?? widget.user.username;
+          message = _message?.msg ?? widget.user.username;
         } else {
           _message = null;
         }
@@ -145,32 +99,41 @@ class _ChatUserCardState extends State<ChatUserCard> {
             style: const TextStyle(fontSize: 15),
           ),
           subtitle: widget.isSearchScreen
-              ? Text(
-                  widget.user.username,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  style: const TextStyle(color: Colors.grey),
+              ? Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.user.username,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  ],
                 )
               : Row(
                   children: [
                     if (_message?.fromid == AllAPIs.auth.currentUser?.uid)
                       Icon(
-                        _message!.read.isNotEmpty
-                            ? Icons.done_all_rounded
-                            : Icons.done,
-                        color: _message!.read.isNotEmpty
-                            ? Colors.blue
-                            : Colors.grey,
-                        size: 15,
+                        color: _message?.status == Status.wait ||
+                                _message?.status == Status.unread
+                            ? Colors.grey
+                            : Colors.blue,
+                        _message?.status == Status.wait
+                            ? Icons.access_time
+                            : _message?.status == Status.read
+                                ? Icons.done_all_rounded
+                                : Icons.done_rounded,
+                        size: 8,
                       ),
-                    const SizedBox(
-                      width: 3,
-                    ),
-                    Text(
-                      message,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      style: const TextStyle(color: Colors.grey),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      child: Text(
+                        message.isNotEmpty ? message : widget.user.username,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
                     ),
                   ],
                 ),

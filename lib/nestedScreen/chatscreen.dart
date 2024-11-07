@@ -126,7 +126,6 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ?.map((e) => Message.fromJson(e.data()))
                                 .toList() ??
                             [])
-                        .reversed
                         .toList();
 
                     if (_list.isNotEmpty) {
