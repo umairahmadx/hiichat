@@ -46,42 +46,45 @@ class _MessageCardState extends State<MessageCard> {
       mainAxisAlignment: MainAxisAlignment.end,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              formatTime(widget.message.sent, context),
-              style: const TextStyle(
-                fontSize: 8,
-                color: Colors.grey,
-              ),
-            ),
-            Row(
-              children: [
-                Text(
-                  widget.message.read!=null
-                      ? formatReadTime(widget.message.read, context)
-                      : "Not read",
-                  style: const TextStyle(
-                    fontSize: 8,
-                    color: Color(0xFFBDBDBD),
-                  ),
+        Padding(
+          padding: const EdgeInsets.only(left: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                formatTime(widget.message.sent, context),
+                style: const TextStyle(
+                  fontSize: 8,
+                  color: Colors.grey,
                 ),
-                const SizedBox(width: 2),
-                Icon(
-                  color: widget.message.status == Status.wait || widget.message.status == Status.unread
-                      ? Colors.grey
-                      : Colors.blue,
-                  widget.message.status == Status.wait
-                      ? Icons.access_time
-                      : widget.message.status == Status.read
-                          ? Icons.done_all_rounded
-                          : Icons.done_rounded,
-                  size: 8,
-                )
-              ],
-            ),
-          ],
+              ),
+              Row(
+                children: [
+                  Text(
+                    widget.message.read!=null
+                        ? formatReadTime(widget.message.read, context)
+                        : "Not read",
+                    style: const TextStyle(
+                      fontSize: 5,
+                      color: Color(0xFFBDBDBD),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(
+                    color: widget.message.status == Status.wait || widget.message.status == Status.unread
+                        ? Colors.grey
+                        : Colors.blue,
+                    widget.message.status == Status.wait
+                        ? Icons.access_time
+                        : widget.message.status == Status.read
+                            ? Icons.done_all_rounded
+                            : Icons.done_rounded,
+                    size: 8,
+                  )
+                ],
+              ),
+            ],
+          ),
         ),
         Flexible(
           child: Container(
@@ -143,7 +146,7 @@ class _MessageCardState extends State<MessageCard> {
           ),
         ),
         Container(
-          margin: const EdgeInsets.only(bottom: 10, right: 5),
+          margin: const EdgeInsets.only(bottom: 10, right: 20),
           child: Text(
             formatReadTime(widget.message.serverTime, context),
             style: const TextStyle(fontSize: 8, color: Colors.grey),

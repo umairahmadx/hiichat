@@ -71,10 +71,6 @@ class _ChatUserCardState extends State<ChatUserCard> {
           );
   }
 
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,9 +90,31 @@ class _ChatUserCardState extends State<ChatUserCard> {
                 ? AllAPIs.defaultImage
                 : CachedNetworkImageProvider(widget.user.profilePic),
           ),
-          title: Text(
-            widget.user.name.isNotEmpty ? widget.user.name : 'HiiChat User',
-            style: const TextStyle(fontSize: 15),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  widget.user.name.isNotEmpty
+                      ? widget.user.name
+                      : 'HiiChat User',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 15),
+                ),
+              ),
+              if (!widget.isSearchScreen && widget.user.isOnline) ...[
+                const SizedBox(width: 6), // Space between text and dot
+                Container(
+                  height: 6,
+                  width: 6,
+                  decoration: const BoxDecoration(
+                    color: Colors.greenAccent,
+                    borderRadius: BorderRadius.all(Radius.circular(15)),
+                  ),
+                ),
+              ]
+            ],
           ),
           subtitle: widget.isSearchScreen
               ? Row(
@@ -124,9 +142,9 @@ class _ChatUserCardState extends State<ChatUserCard> {
                             : _message?.status == Status.read
                                 ? Icons.done_all_rounded
                                 : Icons.done_rounded,
-                        size: 8,
+                        size: 18,
                       ),
-                    const SizedBox(width: 3),
+                    const SizedBox(width: 5),
                     Expanded(
                       child: Text(
                         message.isNotEmpty ? message : widget.user.username,
@@ -137,7 +155,9 @@ class _ChatUserCardState extends State<ChatUserCard> {
                     ),
                   ],
                 ),
-          trailing: !widget.isSearchScreen ? trailingMessage() : null,
+          trailing: !widget.isSearchScreen
+              ? trailingMessage()
+              : const SizedBox.shrink(),
           onTap: () {
             Navigator.of(context).push(
               PageRouteBuilder(

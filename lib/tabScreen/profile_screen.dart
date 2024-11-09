@@ -32,6 +32,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     displayUserInfo(); // Fetch user data when the screen initializes
   }
+  @override
+  void dispose() {
+    super.dispose();
+  }
 
   Future<void> onProfileRemove() async {
     final ref = FirebaseStorage.instance

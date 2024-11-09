@@ -32,7 +32,6 @@ class AuthService {
         'uid': credential.user!.uid,
         'createdAt':time,
         'isOnline' : false,
-        'lastActive':time,
         'pushToken': '',
       });
 

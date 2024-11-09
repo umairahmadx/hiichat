@@ -7,7 +7,6 @@ class ChatUser {
     required this.createdAt,
     required this.isOnline,
     required this.uid,
-    required this.lastActive,
     required this.email,
     required this.pushToken,
   });
@@ -19,7 +18,6 @@ class ChatUser {
   late final String createdAt; // Potentially problematic field
   late final bool isOnline;
   late final String uid;
-  late final String lastActive;
   late final String email;
   late final String pushToken;
 
@@ -31,7 +29,6 @@ class ChatUser {
     createdAt = json['createdAt'] ?? ''; // Ensure createdAt is initialized
     isOnline = json['isOnline'] ?? false; // Default to false if not present
     uid = json['uid'] ?? ''; // Use 'uid' for id
-    lastActive = json['lastActive'] ?? ''; // Provide default value
     email = json['email'] ?? ''; // Provide default value
     pushToken = json['pushToken'] ?? ''; // Provide default value
   }
@@ -44,7 +41,6 @@ class ChatUser {
     data['username'] = username;
     data['createdAt'] = createdAt;
     data['uid'] = uid;
-    data['lastActive'] = lastActive;
     data['email'] = email;
     data['pushToken'] = pushToken;
     return data;
@@ -60,7 +56,6 @@ class ChatUser {
         'createdAt: $createdAt, '
         'isOnline: $isOnline, '
         'uid: $uid, '
-        'lastActive: $lastActive, '
         'email: $email, '
         'pushToken: $pushToken'
         ')';

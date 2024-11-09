@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hiichat/firebase/firebaseapis.dart';
 import 'package:hiichat/mobile/mobilehome.dart';
@@ -57,14 +58,15 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
   }
-
   @override
   void initState() {
-    if (Platform.isAndroid) {
+    super.initState();
+
+    // Check if not running on the web
+    if (!kIsWeb && Platform.isAndroid) {
       currentVersionApp();
       checkLatestVersion(context);
     }
-    super.initState();
   }
 
   @override

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hiichat/firebase/firebaseapis.dart';
 import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
-
 import '../nestedScreen/login/services/logout_function.dart';
 import '../tabScreen/chatlist.dart';
 import '../tabScreen/profile_screen.dart';
@@ -13,9 +13,30 @@ class MobileHome extends StatefulWidget {
   State<MobileHome> createState() => _MobileHomeState();
 }
 
-class _MobileHomeState extends State<MobileHome> {
+class _MobileHomeState extends State<MobileHome> with WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    switch (state) {
+      case AppLifecycleState.resumed:
+        setState(() {
+          AllAPIs.updateUserStatus(true);
+        });
+        break;
+      case AppLifecycleState.detached:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+        setState(() {
+          AllAPIs.updateUserStatus(false);
+        });
+        break;
+    }
+  }
+
   int currentIndex = 0; // Moved currentIndex to the state
   final FocusNode searchFocusNode = FocusNode();
+
   void changeTab() {
     setState(() => currentIndex = 1);
     Future.delayed(Duration.zero, () {
@@ -28,16 +49,21 @@ class _MobileHomeState extends State<MobileHome> {
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance.addObserver(this);
+
     _widgets = [
       ChatListScreen(searchTab: changeTab),
       SearchScreen(focusNode: searchFocusNode),
       const ProfileScreen(),
     ];
   }
+
   @override
   void dispose() {
-    searchFocusNode.dispose(); // Dispose the focus node
     super.dispose();
+    searchFocusNode.dispose();
+    WidgetsBinding.instance.removeObserver(this);
   }
 
   final List<String> screenName = ["Chat", "Search", "Profile"];

@@ -21,16 +21,19 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   bool exist = false;
   bool isEmoji = false;
-  bool imageError= false;
+  bool imageError = false;
 
-
-  void checkUserInChatRoom(String userId1,String userId2){
-    final document = AllAPIs.firestore.collection("users").doc(userId1).collection("my_chatroom").doc(userId2);
-    document.get().then((DocumentSnapshot documentSnapshot){
-      if(!documentSnapshot.exists){
-        try{
+  void checkUserInChatRoom(String userId1, String userId2) {
+    final document = AllAPIs.firestore
+        .collection("users")
+        .doc(userId1)
+        .collection("my_chatroom")
+        .doc(userId2);
+    document.get().then((DocumentSnapshot documentSnapshot) {
+      if (!documentSnapshot.exists) {
+        try {
           AllAPIs.addChatRoom(userId1, userId2);
-        } catch(e){
+        } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Failed to create chatroom: $e')),
@@ -76,35 +79,48 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: Row(
-          children: [
-            CircleAvatar(
-              backgroundImage: widget.user.profilePic.isEmpty
-                  ? AllAPIs.defaultImage
-                  :  CachedNetworkImageProvider(widget.user.profilePic)
-            ),
-            Expanded(
-              child: ListTile(
-                dense: true,
-                title: Text(
-                  widget.user.name.isNotEmpty
-                      ? widget.user.name
-                      : 'HiiChat User',
-                  style: const TextStyle(fontSize: 15),
-                ),
-                subtitle: Text(
-                  widget.user.lastActive.isNotEmpty
-                      ? widget.user.lastActive
-                      : "Last seen not available",
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  style: const TextStyle(
-                    color: Colors.grey,
+        title: StreamBuilder(
+          stream: AllAPIs.getUserInfo(widget.user),
+          builder: (context, snapshot) {
+            final data = snapshot.data?.docs;
+            final list =
+                data?.map((e) => ChatUser.fromJson(e.data())).toList() ?? [];
+            return Row(
+              children: [
+                CircleAvatar(
+                    backgroundImage: list.isEmpty
+                        ? AllAPIs.defaultImage
+                        : (list[0].profilePic.isEmpty
+                            ? AllAPIs.defaultImage
+                            : CachedNetworkImageProvider(list[0].profilePic))),
+                Expanded(
+                  child: ListTile(
+                    dense: true,
+                    title: Text(
+                      list.isEmpty
+                          ? 'HiiChat User'
+                          : list[0].name.isNotEmpty
+                              ? list[0].name
+                              : 'HiiChat User',
+                      style: const TextStyle(fontSize: 15),
+                    ),
+                    subtitle: Text(
+                      list.isEmpty
+                          ? 'Offline'
+                          : list[0].isOnline
+                              ? "Online"
+                              : "Offline",
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: Colors.grey,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
         backgroundColor: Colors.white,
         centerTitle: false,
@@ -236,10 +252,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: IconButton(
                     color: Colors.white,
                     onPressed: () {
-                      if(_list.isEmpty || !exist){
-
-                        checkUserInChatRoom(AllAPIs.auth.currentUser!.uid,widget.user.uid);
-                        checkUserInChatRoom(widget.user.uid,AllAPIs.auth.currentUser!.uid);
+                      if (_list.isEmpty || !exist) {
+                        checkUserInChatRoom(
+                            AllAPIs.auth.currentUser!.uid, widget.user.uid);
+                        checkUserInChatRoom(
+                            widget.user.uid, AllAPIs.auth.currentUser!.uid);
                         exist = true;
                       }
                       sendMessage();

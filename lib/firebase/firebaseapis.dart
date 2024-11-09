@@ -35,6 +35,10 @@ class AllAPIs {
         .snapshots();
   }
 
+  static Stream<QuerySnapshot<Map<String,dynamic>>> getUserInfo(ChatUser user){
+    return firestore.collection('users').where('uid',isEqualTo: user.uid).snapshots();
+  }
+
   static String getConversationID(String uid) {
     String currentUserID = auth.currentUser!.uid;
     return currentUserID.compareTo(uid) <= 0
@@ -99,6 +103,13 @@ class AllAPIs {
         .update(
             {'read': FieldValue.serverTimestamp(), 'status': Status.read.name});
     return true;
+  }
+  static Future<void> updateUserStatus(bool status) async {
+    firestore.collection('users').doc(auth.currentUser?.uid).update(
+      {
+        'isOnline' : status,
+      }
+    );
   }
 
   static Stream<QuerySnapshot<Map<String, dynamic>>> getLastMessages(
