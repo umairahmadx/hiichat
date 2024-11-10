@@ -1,8 +1,16 @@
+import 'dart:convert';
+import 'dart:developer';
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:hiichat/models/chatuser.dart';
 import 'package:hiichat/models/message.dart';
+import 'package:http/http.dart';
+
+import '../serverkey.dart';
 
 class AllAPIs {
   static FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -35,8 +43,12 @@ class AllAPIs {
         .snapshots();
   }
 
-  static Stream<QuerySnapshot<Map<String,dynamic>>> getUserInfo(ChatUser user){
-    return firestore.collection('users').where('uid',isEqualTo: user.uid).snapshots();
+  static Stream<QuerySnapshot<Map<String, dynamic>>> getUserInfo(
+      ChatUser user) {
+    return firestore
+        .collection('users')
+        .where('uid', isEqualTo: user.uid)
+        .snapshots();
   }
 
   static String getConversationID(String uid) {
@@ -44,6 +56,50 @@ class AllAPIs {
     return currentUserID.compareTo(uid) <= 0
         ? '${currentUserID}_$uid'
         : '${uid}_$currentUserID';
+  }
+
+  static FirebaseMessaging fireMessaging = FirebaseMessaging.instance;
+  static String pushToken = '';
+
+  static Future<void> getFirebaseMessagingToken() async {
+    try {
+      await fireMessaging.requestPermission();
+
+      await fireMessaging.getToken().then((t) {
+        if (t != null) {
+          AllAPIs.pushToken = t;
+        }
+      });
+      GetServerKey.myApi=await GetServerKey().getServerKeyToken();
+    } catch (e) {
+      log('\nerror : $e');
+    }
+  }
+
+  static Future<void> sendPushNotification(
+      ChatUser chatUser, String msg) async {
+    try {
+      final body = {
+        "message": {
+          "token": chatUser.pushToken,
+          "notification": {"body": msg, "title": chatUser.name}
+        }
+      };
+      final String key = GetServerKey.myApi;
+      await post(
+        Uri.parse(
+            'https://fcm.googleapis.com/v1/projects/chatapp-78d5d/messages:send'),
+        headers: {
+          HttpHeaders.authorizationHeader: 'Bearer $key',
+          // Include 'Bearer' prefix
+          'Content-Type': 'application/json'
+          // Set Content-Type to application/json
+        },
+        body: jsonEncode(body),
+      );
+    } catch (e) {
+      log('NotificationSendError: $e');
+    }
   }
 
   static Future<bool> deleteChatRoom(String chatRoomId) async {
@@ -61,10 +117,7 @@ class AllAPIs {
   }
 
   static Future<void> sendMessage(ChatUser chatUser, String msg) async {
-    final time = DateTime
-        .now()
-        .millisecondsSinceEpoch
-        .toString();
+    final time = DateTime.now().millisecondsSinceEpoch.toString();
 
     final Message message = Message(
       fromid: auth.currentUser!.uid,
@@ -83,20 +136,19 @@ class AllAPIs {
         'serverTime': FieldValue.serverTimestamp(),
         'status': Status.unread.name
       });
-    });
+    }).then((_) => sendPushNotification(chatUser, msg));
     await updateLastMessage(auth.currentUser!.uid, chatUser.uid);
     await updateLastMessage(chatUser.uid, auth.currentUser!.uid);
   }
 
-    static Future<void> updateLastMessage(String uid1, String uid2) async {
-      final lastMessage = firestore.collection("users/$uid1/my_chatroom");
-      await lastMessage
-          .doc(uid2)
-          .update({"lastMessageTime": FieldValue.serverTimestamp()});
-    }
+  static Future<void> updateLastMessage(String uid1, String uid2) async {
+    final lastMessage = firestore.collection("users/$uid1/my_chatroom");
+    await lastMessage
+        .doc(uid2)
+        .update({"lastMessageTime": FieldValue.serverTimestamp()});
+  }
 
-
-    static Future<bool> updateMessageReadStatus(Message message) async {
+  static Future<bool> updateMessageReadStatus(Message message) async {
     firestore
         .collection("chat/${getConversationID(message.fromid)}/messages")
         .doc(message.sent)
@@ -104,12 +156,12 @@ class AllAPIs {
             {'read': FieldValue.serverTimestamp(), 'status': Status.read.name});
     return true;
   }
+
   static Future<void> updateUserStatus(bool status) async {
-    firestore.collection('users').doc(auth.currentUser?.uid).update(
-      {
-        'isOnline' : status,
-      }
-    );
+    firestore
+        .collection('users')
+        .doc(auth.currentUser?.uid)
+        .update({'isOnline': status, 'pushToken': AllAPIs.pushToken});
   }
 
   static Stream<QuerySnapshot<Map<String, dynamic>>> getLastMessages(

@@ -38,6 +38,7 @@ migrate_working_dir/
 /windows/
 /test/
 /lib/firebase_options.dart
+/lib/serverkey.dart
 .metadata
 /analysis_options.yaml
 firebase.json

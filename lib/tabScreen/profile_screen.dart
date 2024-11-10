@@ -133,11 +133,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void displayUserInfo() async {
     try {
-      String? email = "user_email@example.com";
-      email = AllAPIs.auth.currentUser?.email;
       await _firestore
           .collection('users')
-          .where("email", isEqualTo: email)
+          .where("uid", isEqualTo: AllAPIs.auth.currentUser?.uid)
           .get()
           .then((snapshot) async {
         if (snapshot.docs.isNotEmpty) {

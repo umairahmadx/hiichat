@@ -51,7 +51,7 @@ class _MobileHomeState extends State<MobileHome> with WidgetsBindingObserver {
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
-
+    AllAPIs.getFirebaseMessagingToken();
     _widgets = [
       ChatListScreen(searchTab: changeTab),
       SearchScreen(focusNode: searchFocusNode),
