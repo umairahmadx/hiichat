@@ -44,7 +44,7 @@ firebase.json
 hiichat.iml
 pubspec.lock
 /lib/serverkey.dart
-/lib/apis.json
+/lib/apis.dart
 
 
 # Symbolication related
