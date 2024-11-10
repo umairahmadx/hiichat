@@ -96,7 +96,6 @@ class _ChatListScreen extends State<ChatListScreen> {
                 }
               },
             );
-
           } else {
             return const Center(child: CircularProgressIndicator());
           }
