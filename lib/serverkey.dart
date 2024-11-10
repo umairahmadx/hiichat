@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:googleapis_auth/auth_io.dart';
+import 'package:hiichat/apis.dart';
 
 class GetServerKey {
 
@@ -9,7 +12,12 @@ class GetServerKey {
     ];
     final client = await clientViaServiceAccount(
       ServiceAccountCredentials.fromJson(
-         //[private keys - get the keys from -> Firebase Project Setting -> Service Account -> Firebase Admin Sdk -> Node.js -> Generate new private key -> Paste All the content here ]
+        jsonEncode(Api.api),
+
+        // [private keys - get the keys from -> Firebase Project Setting -> Service Account -> Firebase Admin Sdk -> Node.js -> Generate new private key -> Paste All the content here ]
+        //create a class with name Api and a static function name api and add private key there
+        //Or
+        //paste the private key here and delete jsonEncode(Api.api), this line
         //will look like this
         //"type": "service_account",
         //  "project_id": "",
@@ -24,6 +32,7 @@ class GetServerKey {
         //  "client_x509_cert_url":
         //      "private",
         //  "universe_domain": "googleapis.com"
+
       ),
       scopes,
     );

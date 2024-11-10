@@ -82,10 +82,10 @@ class AllAPIs {
       final body = {
         "message": {
           "token": chatUser.pushToken,
-          "notification": {"body": msg, "title": chatUser.name}
+          "notification": {"body": msg, "title": auth.currentUser?.displayName}
         }
       };
-      final String key = GetServerKey.myApi;
+      final String key = await GetServerKey().getServerKeyToken();
       await post(
         Uri.parse(
             'https://fcm.googleapis.com/v1/projects/chatapp-78d5d/messages:send'),
